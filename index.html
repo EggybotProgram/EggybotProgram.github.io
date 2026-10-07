@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>2048 沙盒网页版</title>
+<style>
+  * {
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  body {
+    background: #faf8ef;
+    padding: 12px;
+    max-width: 900px;
+    margin: 0 auto;
+    color: #776e65;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    margin: 8px 0 16px;
+  }
+
+  .toolbar {
+    background: #f5f3e8;
+    border: 1px solid #e7e2cf;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .control-group {
+    background: #fffdf4;
+    border: 1px solid #ece6cf;
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 180px;
+  }
+
+  .control-group label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #776e65;
+  }
+
+  .control-group input[type="number"] {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid #d9d2b6;
+    border-radius: 6px;
+    background: #fff;
+    color: #776e65;
+  }
+
+  /* ========== 权重面板：垂直单列布局 ========== */
+  .prob-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .prob-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fffdf4;
+    border: 1px solid #ece6cf;
+    border-radius: 8px;
+    padding: 6px 8px;
+  }
+
+  .prob-item .num {
+    font-weight: 800;
+    color: #776e65;
+    width: 60px;
+    flex: 0 0 60px;
+  }
+
+  .prob-item input {
+    flex:1;
+    padding: 5px 7px;
+    border: 1px solid #d9d2b6;
+    border-radius: 5px;
+  }
+  /* ===================================== */
+
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  button,
+  .btn {
+    background: #8f7a66;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  button:hover,
+  .btn:hover {
+    background: #a08b77;
+  }
+
+  button.secondary {
+    background: #b5a48a;
+  }
+
+  button.secondary:hover {
+    background: #c3b29a;
+  }
+
+  .tip {
+    text-align: center;
+    margin: 10px 0 6px;
+    color: #776e65;
+  }
+
+  #boardWrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  #board {
+    background: #bbada0;
+    padding: 12px;
+    border-radius: 10px;
+    display: grid;
+    gap: 10px;
+    width: max-content;
+  }
+
+  .cell {
+    width: 56px;
+    height: 56px;
+    border-radius: 7px;
+    background: #cdc1b4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 21px;
+    color: #776e65;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s ease, transform 0.12s ease;
+  }
+
+  .cell:hover {
+    outline: 2px solid #f2b179;
+  }
+
+  /* 基础数字纯色 */
+  .cell-2    { background: #eee4da; color: #776e65; }
+  .cell-4    { background: #ede0c8; color: #776e65; }
+  .cell-8    { background: #f2b179; color: #fff; }
+  .cell-16   { background: #f59563; color: #fff; }
+  .cell-32   { background: #f67c5f; color: #fff; }
+  .cell-64   { background: #f65e3b; color: #fff; }
+  .cell-128  { background: #edcf72; color: #fff; font-size: 19px; }
+  .cell-256  { background: #edcc61; color: #fff; font-size: 19px; }
+  .cell-512  { background: #edc850; color: #fff; font-size: 19px; }
+  .cell-1024 { background: #edc53f; color: #fff; font-size: 17px; }
+  .cell-2048 { background: #edc22e; color: #fff; font-size: 17px; }
+
+  /* 4096 以后纯色递进 */
+  .cell-4096  { background: #3e4a59; color: #fff; font-size: 17px; }
+  .cell-8192  { background: #2b6a7a; color: #fff; font-size: 17px; }
+  .cell-16384 { background: #2f7a5f; color: #fff; font-size: 16px; }
+  .cell-32768 { background: #7a6a2b; color: #fff; font-size: 16px; }
+  .cell-65536 { background: #7a3b2b; color: #fff; font-size: 16px; }
+
+  /* 更高数字统一深色纯色 */
+  .cell-big {
+    background: #1f1f22;
+    color: #fff;
+    font-size: 15px;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 18px;
+    color: #9f947a;
+    font-size: 13px;
+  }
+</style>
+</head>
+
+<body>
+  <h1>2048 沙盒网页版</h1>
+
+  <div class="toolbar">
+    <div class="row">
+      <div class="control-group">
+        <label>棋盘大小 (3~10)</label>
+        <input id="sizeIn" type="number" min="3" max="10" value="4" />
+      </div>
+
+      <div class="control-group">
+        <label>开局方块数量</label>
+        <input id="startCntIn" type="number" min="0" max="30" value="2" />
+      </div>
+
+      <div class="control-group">
+        <label>滑动后生成方块数</label>
+        <input id="spawnCntIn" type="number" min="0" max="20" value="1" />
+      </div>
+
+      <div class="control-group">
+        <label>方块数字权重</label>
+        <div class="prob-list" id="probList"></div>
+        <button class="secondary" style="width:100%;margin-top:8px;" onclick="resetWeights()">重置所有权重</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button onclick="resetBoard()">重置棋盘</button>
+      <button class="secondary" onclick="undo()">撤销 ↩</button>
+      <button class="secondary" onclick="redo()">恢复 ↪</button>
+      <button class="secondary" onclick="exportBoard()">导出存档</button>
+      <button class="secondary" onclick="document.getElementById('importFile').click()">导入存档</button>
+      <input type="file" id="importFile" accept="application/json" hidden />
+    </div>
+  </div>
+
+  <div class="tip">点击格子修改数字 | 方向键 / WASD 滑动 | 支持撤销和恢复</div>
+
+  <div id="boardWrap">
+    <div id="board"></div>
+  </div>
+
+  <footer>
+    小提示：权重越大的数字越容易出现；权重都为 0 时默认生成 2。
+  </footer>
+
+<script>
+  // 可配置数字列表
+  const NUMBERS = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536];
+
+  let size = 4;
+  let startCount = 2;
+  let spawnPerMove = 1;
+  let board = [];
+
+  // 历史栈：无限撤销/恢复
+  let historyStack = [];
+  let redoStack = [];
+  const MAX_HISTORY = 5000;
+
+  // 默认权重
+  const DEFAULT_WEIGHTS = {
+    2: 90,
+    4: 10,
+    8: 0,
+    16: 0,
+    32: 0,
+    64: 0,
+    128: 0,
+    256: 0,
+    512: 0,
+    1024: 0,
+    2048: 0,
+    4096: 0,
+    8192: 0,
+    16384: 0,
+    32768: 0,
+    65536: 0
+  };
+
+  // 初始化概率面板
+  function initProbUI() {
+    const list = document.getElementById("probList");
+    list.innerHTML = "";
+
+    NUMBERS.forEach((n) => {
+      const item = document.createElement("div");
+      item.className = "prob-item";
+      item.innerHTML = `
+        <span class="num">${n}</span>
+        <input type="number" min="0" value="${DEFAULT_WEIGHTS[n]}" data-num="${n}" />
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  // 重置权重函数
+  function resetWeights() {
+    const inputs = document.querySelectorAll("#probList input");
+    inputs.forEach((input) => {
+      const num = parseInt(input.dataset.num,10);
+      input.value = DEFAULT_WEIGHTS[num];
+    });
+  }
+
+  function getProbWeights() {
+    const inputs = document.querySelectorAll("#probList input");
+    const list = [];
+
+    inputs.forEach((input) => {
+      const v = parseInt(input.dataset.num, 10);
+      const w = Math.max(0, parseInt(input.value || "0", 10) || 0);
+      list.push({ v, w });
+    });
+
+    return list;
+  }
+
+  function randomNum() {
+    const weights = getProbWeights();
+    const total = weights.reduce((s, x) => s + x.w, 0);
+
+    if (total <= 0) return 2;
+
+    let r = Math.random() * total;
+    for (const item of weights) {
+      r -= item.w;
+      if (r <= 0) return item.v;
+    }
+
+    return 2;
+  }
+
+  function getEmptyCells() {
+    const empty = [];
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (board[y][x] === 0) empty.push({ x, y });
+      }
+    }
+    return empty;
+  }
+
+  function spawnBlocks(count) {
+    const empty = getEmptyCells();
+    const add = Math.min(count, empty.length);
+
+    for (let i = 0; i < add; i++) {
+      const idx = Math.floor(Math.random() * empty.length);
+      const pick = empty.splice(idx, 1)[0];
+      board[pick.y][pick.x] = randomNum();
+    }
+  }
+
+  function saveHistory() {
+    historyStack.push(JSON.parse(JSON.stringify(board)));
+
+    if (historyStack.length > MAX_HISTORY) {
+      historyStack.shift();
+    }
+  }
+
+  function undo() {
+    if (!historyStack.length) return;
+
+    redoStack.push(JSON.parse(JSON.stringify(board)));
+    board = historyStack.pop();
+    render();
+  }
+
+  function redo() {
+    if (!redoStack.length) return;
+
+    historyStack.push(JSON.parse(JSON.stringify(board)));
+    board = redoStack.pop();
+    render();
+  }
+
+  function resetBoard() {
+    size = Math.max(3, Math.min(10, parseInt(document.getElementById("sizeIn").value, 10) || 4));
+    startCount = Math.max(0, Math.min(30, parseInt(document.getElementById("startCntIn").value, 10) || 0));
+    spawnPerMove = Math.max(0, Math.min(20, parseInt(document.getElementById("spawnCntIn").value, 10) || 0));
+
+    board = Array.from({ length: size }, () => Array(size).fill(0));
+    spawnBlocks(startCount);
+
+    historyStack = [];
+    redoStack = [];
+    render();
+  }
+
+  function render() {
+    const dom = document.getElementById("board");
+    dom.style.gridTemplateColumns = `repeat(${size}, 56px)`;
+    dom.innerHTML = "";
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const val = board[y][x];
+        const cell = document.createElement("div");
+        cell.className = "cell";
+
+        if (val > 0) {
+          cell.textContent = val;
+
+          if (NUMBERS.includes(val)) {
+            cell.classList.add("cell-" + val);
+          } else {
+            cell.classList.add("cell-big");
+          }
+        }
+
+        cell.addEventListener("click", () => {
+          const newVal = prompt(`修改格子 (${x}, ${y}) 的数字：`, board[y][x]);
+
+          if (newVal !== null && !isNaN(newVal)) {
+            saveHistory();
+            redoStack = [];
+            board[y][x] = Math.max(0, parseInt(newVal, 10) || 0);
+            render();
+          }
+        });
+
+        dom.appendChild(cell);
+      }
+    }
+  }
+
+  function slideLeft(row) {
+    let arr = row.filter((v) => v !== 0);
+
+    for (let i = 0; i < arr.length - 1; i++) {
+      if (arr[i] === arr[i + 1]) {
+        arr[i] *= 2;
+        arr[i + 1] = 0;
+      }
+    }
+
+    arr = arr.filter((v) => v !== 0);
+
+    while (arr.length < size) {
+      arr.push(0);
+    }
+
+    return arr;
+  }
+
+  function rotateMatrix(mat, times) {
+    let res = mat.map((row) => [...row]);
+
+    for (let t = 0; t < times; t++) {
+      const newM = Array.from({ length: size }, () => Array(size).fill(0));
+
+      for (let y = 0; y < size; x++) {
+        newM[x][size - 1 - y] = res[y][x];
+      }
+
+      res = newM;
+    }
+
+    return res;
+  }
+
+  function move(dir) {
+    saveHistory();
+    redoStack = [];
+
+    let rotated = 0;
+    if (dir === "up") rotated = 3;
+    if (dir === "right") rotated = 2;
+    if (dir === "down") rotated = 1;
+
+    let m = rotateMatrix(board, rotated);
+    let moved = false;
+
+    for (let y = 0; y < size; y++) {
+      const old = [...m[y]];
+      m[y] = slideLeft(m[y]);
+
+      if (old.join(",") !== m[y].join(",")) {
+        moved = true;
+      }
+    }
+
+    m = rotateMatrix(m, (4 - rotated) % 4);
+    board = m;
+
+    if (moved) {
+      spawnBlocks(spawnPerMove);
+    }
+
+    render();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+
+    if (["arrowleft", "a"].includes(key)) {
+      e.preventDefault();
+      move("left");
+    } else if (["arrowright", "d"].includes(key)) {
+      e.preventDefault();
+      move("right");
+    } else if (["arrowup", "w"].includes(key)) {
+      e.preventDefault();
+      move("up");
+    } else if (["arrowdown", "s"].includes(key)) {
+      e.preventDefault();
+      move("down");
+    }
+  });
+
+  function exportBoard() {
+    const data = {
+      size,
+      startCount,
+      spawnPerMove,
+      weights: getProbWeights(),
+      board
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "2048-sandbox-save.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importBoard(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+
+        if (!Array.isArray(data.board) || !data.board.length) {
+          alert("存档格式错误：缺少棋盘数据");
+          return;
+        }
+
+        size = data.size || data.board.length;
+        startCount = data.startCount ?? 2;
+        spawnPerMove = data.spawnPerMove ?? 1;
+        board = data.board.map((row) => [...row]);
+
+        document.getElementById("sizeIn").value = size;
+        document.getElementById("startCntIn").value = startCount;
+        document.getElementById("spawnCntIn").value = spawnPerMove;
+
+        if (Array.isArray(data.weights)) {
+          const inputs = document.querySelectorAll("#probList input");
+          inputs.forEach((input) => {
+            const num = parseInt(input.dataset.num, 10);
+            const found = data.weights.find((w) => w.v === num);
+            if (found) input.value = found.w;
+          });
+        }
+
+        historyStack = [];
+        redoStack = [];
+        render();
+      } catch (err) {
+        alert("导入失败：" + err.message);
+      }
+    };
+
+    reader.readAsText(file);
+  }
+
+  document.getElementById("importFile").addEventListener("change", (e) => {
+    importBoard(e.target.files && e.target.files[0]);
+    e.target.value = "";
+  });
+
+  // 启动
+  initProbUI();
+  resetBoard();
+</script>
+</body>
+</html>
