@@ -16,6 +16,7 @@
     max-width: 900px;
     margin: 0 auto;
     color: #776e65;
+    touch-action: manipulation;
   }
 
   h1 {
@@ -68,7 +69,7 @@
     color: #776e65;
   }
 
-  /* 权重面板：加宽项宽度，输入框更宽 */
+  /* 权重面板：横向自动换行，输入框加宽 */
   .prob-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
@@ -115,6 +116,7 @@
     padding: 8px 12px;
     font-weight: 700;
     cursor: pointer;
+    touch-action: manipulation;
   }
 
   button:hover {
@@ -139,6 +141,9 @@
     display: flex;
     justify-content: center;
     margin-top: 12px;
+    /* 禁止移动端默认滑动手势，避免页面滚动 */
+    touch-action: none;
+    user-select: none;
   }
 
   #board {
@@ -243,7 +248,7 @@
     </div>
   </div>
 
-  <div class="tip">点击格子修改数字 | 方向键 / WASD 滑动 | 支持撤销和恢复</div>
+  <div class="tip">点击格子修改数字 | 键盘方向键/WASD / 触屏滑动</div>
 
   <div id="boardWrap">
     <div id="board"></div>
@@ -266,6 +271,11 @@
   let historyStack = [];
   let redoStack = [];
   const MAX_HISTORY = 5000;
+
+  // 触屏滑动变量
+  let touchStartX = 0;
+  let touchStartY = 0;
+  const MIN_SWIPE_DISTANCE = 30; // 最小滑动距离，小于则判定为点击
 
   // 默认权重
   const DEFAULT_WEIGHTS = {
@@ -453,6 +463,7 @@
     render();
   }
 
+  // 键盘控制
   document.addEventListener("keydown", e => {
     const key = e.key.toLowerCase();
     if (["arrowleft", "a"].includes(key)) { e.preventDefault(); move("left"); }
@@ -461,6 +472,33 @@
     else if (["arrowdown", "s"].includes(key)) { e.preventDefault(); move("down"); }
   });
 
+  // ========== 触屏滑动控制 ==========
+  const boardWrap = document.getElementById("boardWrap");
+
+  boardWrap.addEventListener("touchstart", e => {
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  }, { passive: true });
+
+  boardWrap.addEventListener("touchend", e => {
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+
+    // 距离不足判定为点击，不触发滑动
+    if (Math.abs(dx) < MIN_SWIPE_DISTANCE && Math.abs(dy) < MIN_SWIPE_DISTANCE) return;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // 横向滑动
+      move(dx > 0 ? "right" : "left");
+    } else {
+      // 纵向滑动
+      move(dy > 0 ? "down" : "up");
+    }
+  }, { passive: true });
+
+  // 导出存档
   function exportBoard() {
     const data = { size, startCount, spawnPerMove, weights: getProbWeights(), board };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -474,6 +512,7 @@
     URL.revokeObjectURL(url);
   }
 
+  // 导入存档
   function importBoard(file) {
     if (!file) return;
     const reader = new FileReader();
