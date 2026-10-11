@@ -181,7 +181,6 @@
     outline: 2px solid #f2b179;
   }
 
-  /* 基础数字纯色 */
   .cell-2    { background: #eee4da; color: #776e65; }
   .cell-4    { background: #ede0c8; color: #776e65; }
   .cell-8    { background: #f2b179; color: #fff; }
@@ -194,21 +193,18 @@
   .cell-1024 { background: #edc53f; color: #fff; font-size: 17px; }
   .cell-2048 { background: #edc22e; color: #fff; font-size: 17px; }
 
-  /* 4096 以后纯色递进 */
   .cell-4096  { background: #3e4a59; color: #fff; font-size: 17px; }
   .cell-8192  { background: #2b6a7a; color: #fff; font-size: 17px; }
   .cell-16384 { background: #2f7a5f; color: #fff; font-size: 16px; }
   .cell-32768 { background: #7a6a2b; color: #fff; font-size: 16px; }
   .cell-65536 { background: #7a3b2b; color: #fff; font-size: 16px; }
 
-  /* 更高数字统一深色 */
   .cell-big {
     background: #1f1f22;
     color: #fff;
     font-size: 15px;
   }
 
-  /* 关于/赞助面板 */
   .about-box {
     margin-top: 16px;
     background: #fffdf4;
@@ -267,8 +263,8 @@
   }
 
   .sponsor-item img {
-    width: 200px;
-    height: 200px;
+    width: 240px;
+    height: 240px;
     object-fit: cover;
     border: 1px solid #ece6cf;
     border-radius: 10px;
@@ -366,7 +362,6 @@
   </footer>
 
 <script>
-  // 可配置数字列表
   const NUMBERS = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536];
   const VERSION = "1.0";
 
@@ -375,17 +370,14 @@
   let spawnPerMove = 1;
   let board = [];
 
-  // 历史栈
   let historyStack = [];
   let redoStack = [];
   const MAX_HISTORY = 5000;
 
-  // 触屏滑动
   let touchStartX = 0;
   let touchStartY = 0;
   const MIN_SWIPE_DISTANCE = 30;
 
-  // 默认权重
   const DEFAULT_WEIGHTS = {
     2: 90,
     4: 10,
@@ -394,7 +386,6 @@
     16384: 0, 32768: 0, 65536: 0
   };
 
-  // 初始化概率面板
   function initProbUI() {
     const list = document.getElementById("probList");
     list.innerHTML = "";
@@ -409,7 +400,6 @@
     });
   }
 
-  // 重置权重
   function resetWeights() {
     document.querySelectorAll("#probList input").forEach(input => {
       const num = parseInt(input.dataset.num, 10);
@@ -571,7 +561,6 @@
     render();
   }
 
-  // 键盘控制
   document.addEventListener("keydown", e => {
     const key = e.key.toLowerCase();
     if (["arrowleft", "a"].includes(key)) { e.preventDefault(); move("left"); }
@@ -580,7 +569,6 @@
     else if (["arrowdown", "s"].includes(key)) { e.preventDefault(); move("down"); }
   });
 
-  // 触屏滑动控制
   const boardWrap = document.getElementById("boardWrap");
 
   boardWrap.addEventListener("touchstart", e => {
@@ -603,7 +591,6 @@
     }
   }, { passive: true });
 
-  // 导出存档
   function exportBoard() {
     const data = {
       version: VERSION,
@@ -624,7 +611,6 @@
     URL.revokeObjectURL(url);
   }
 
-  // 导入存档
   function importBoard(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -667,7 +653,6 @@
     e.target.value = "";
   });
 
-  // 启动
   initProbUI();
   resetBoard();
 </script>
