@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>2048 沙盒网页版</title>
+<title>2048 沙盒网页版 v1.0</title>
 <style>
   * {
     box-sizing: border-box;
@@ -23,6 +23,14 @@
     text-align: center;
     font-size: 28px;
     margin: 8px 0 16px;
+  }
+
+  .version {
+    font-size: 14px;
+    font-weight: normal;
+    color: #9f947a;
+    margin-left: 8px;
+    vertical-align: middle;
   }
 
   .toolbar {
@@ -69,7 +77,6 @@
     color: #776e65;
   }
 
-  /* 权重面板：横向自动换行，输入框加宽 */
   .prob-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
@@ -141,7 +148,6 @@
     display: flex;
     justify-content: center;
     margin-top: 12px;
-    /* 禁止移动端默认滑动手势，避免页面滚动 */
     touch-action: none;
     user-select: none;
   }
@@ -202,6 +208,74 @@
     font-size: 15px;
   }
 
+  /* 关于/赞助面板 */
+  .about-box {
+    margin-top: 16px;
+    background: #fffdf4;
+    border: 1px solid #ece6cf;
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #776e65;
+  }
+
+  .about-box summary {
+    cursor: pointer;
+    font-weight: 700;
+    user-select: none;
+  }
+
+  .about-content {
+    margin-top: 10px;
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  .about-content ul {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+
+  .tip-text {
+    background: #f5f3e8;
+    border-left: 3px solid #f2b179;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+
+  .sponsor-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e7e2cf;
+  }
+
+  .sponsor-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 10px;
+    justify-content: center;
+  }
+
+  .sponsor-item {
+    text-align: center;
+    min-width: 140px;
+  }
+
+  .sponsor-item p {
+    margin: 0 0 6px;
+    font-weight: 700;
+  }
+
+  .sponsor-item img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border: 1px solid #ece6cf;
+    border-radius: 10px;
+    background: #fff;
+    padding: 6px;
+  }
+
   footer {
     text-align: center;
     margin-top: 18px;
@@ -212,7 +286,7 @@
 </head>
 
 <body>
-  <h1>2048 沙盒网页版</h1>
+  <h1>2048 沙盒网页版 <span class="version">v1.0</span></h1>
 
   <div class="toolbar">
     <div class="row">
@@ -254,28 +328,62 @@
     <div id="board"></div>
   </div>
 
+  <details class="about-box">
+    <summary>📖 关于 / 赞助</summary>
+    <div class="about-content">
+      <p><strong>2048 沙盒网页版</strong></p>
+      <p>这是一个可高度自定义的 2048 沙盒版本，支持调整棋盘大小、开局方块数、滑动后生成数量、数字出现权重，并提供无限撤销与恢复功能。</p>
+
+      <ul>
+        <li>自定义棋盘大小：3×3 ~ 10×10</li>
+        <li>自定义开局方块数量</li>
+        <li>自定义每次滑动后生成方块数量</li>
+        <li>调整 2、4、8、16……65536 的数字权重</li>
+        <li>点击格子手动修改数字</li>
+        <li>支持无限撤销 / 恢复</li>
+        <li>支持键盘方向键、WASD、触屏滑动</li>
+        <li>支持导入 / 导出 JSON 存档</li>
+      </ul>
+
+      <p class="tip-text">操作提示：在棋盘区域滑动屏幕即可控制方块移动；点击格子可修改数字。</p>
+
+      <div class="sponsor-section">
+        <p><strong>支持作者</strong></p>
+        <p>如果你觉得这个游戏好玩，可以通过赞助支持作者继续维护和更新。</p>
+
+        <div class="sponsor-images">
+          <div class="sponsor-item">
+            <p>微信支付</p>
+            <img src="wechat.png" alt="微信支付" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
+
   <footer>
-    小提示：权重越大的数字越容易出现；权重都为 0 时默认生成 2。
+    2048 沙盒网页版 v1.0
   </footer>
 
 <script>
   // 可配置数字列表
   const NUMBERS = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536];
+  const VERSION = "1.0";
 
   let size = 4;
   let startCount = 2;
   let spawnPerMove = 1;
   let board = [];
 
-  // 历史栈：无限撤销/恢复
+  // 历史栈
   let historyStack = [];
   let redoStack = [];
   const MAX_HISTORY = 5000;
 
-  // 触屏滑动变量
+  // 触屏滑动
   let touchStartX = 0;
   let touchStartY = 0;
-  const MIN_SWIPE_DISTANCE = 30; // 最小滑动距离，小于则判定为点击
+  const MIN_SWIPE_DISTANCE = 30;
 
   // 默认权重
   const DEFAULT_WEIGHTS = {
@@ -472,7 +580,7 @@
     else if (["arrowdown", "s"].includes(key)) { e.preventDefault(); move("down"); }
   });
 
-  // ========== 触屏滑动控制 ==========
+  // 触屏滑动控制
   const boardWrap = document.getElementById("boardWrap");
 
   boardWrap.addEventListener("touchstart", e => {
@@ -486,21 +594,25 @@
     const dx = touch.clientX - touchStartX;
     const dy = touch.clientY - touchStartY;
 
-    // 距离不足判定为点击，不触发滑动
     if (Math.abs(dx) < MIN_SWIPE_DISTANCE && Math.abs(dy) < MIN_SWIPE_DISTANCE) return;
 
     if (Math.abs(dx) > Math.abs(dy)) {
-      // 横向滑动
       move(dx > 0 ? "right" : "left");
     } else {
-      // 纵向滑动
       move(dy > 0 ? "down" : "up");
     }
   }, { passive: true });
 
   // 导出存档
   function exportBoard() {
-    const data = { size, startCount, spawnPerMove, weights: getProbWeights(), board };
+    const data = {
+      version: VERSION,
+      size,
+      startCount,
+      spawnPerMove,
+      weights: getProbWeights(),
+      board
+    };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
